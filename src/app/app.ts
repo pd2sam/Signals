@@ -1,4 +1,4 @@
-import { Component, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 
 @Component({
   selector: 'app-root',
@@ -9,10 +9,33 @@ import { Component, signal, ChangeDetectionStrategy } from '@angular/core';
         <span class="status-dot"></span>
         Status: {{userStatus()}}
       </div>
+      <div class='status-info'>
+        <div class="notifications">
+          <strong>Notifications:</strong>
+          @if (notificationsEnabled()) {
+            Enabled
+          } @else {
+            Disabled
+          }
+        </div>
+        <div class="message">
+          <strong>Message:</strong>
+          {{statusMessage()}}
+        </div>
+        <div class="working-hours">
+          <strong>Within Working Hours:</strong>
+          @if (isWithinWorkingHours()) {
+            Yes
+          } @else {
+            No
+          }
+        </div>
+      </div>
 
       <div class="status-controls">
         <button (click)='goOnline()' [disabled]='userStatus() === "online"'>Go Online</button>
         <button (click)='goOffline()' [disabled]="userStatus() === 'offline'">Go Offline</button>
+        <button (click)="goAway()" [disabled]="userStatus() === 'away'">Go Away</button>
         <button (click)="toggleStatus()" class="toggle-btn">Toggle Status</button>
       </div>
     </div>
@@ -21,16 +44,56 @@ import { Component, signal, ChangeDetectionStrategy } from '@angular/core';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class App {
-userStatus = signal<'online' | 'offline'>('offline');
-goOnline() {
-  this.userStatus.set('online');
-}
+  userStatus = signal<'online' | 'away' | 'offline'>('offline');
+  goOnline() {
+    this.userStatus.set('online');
+  }
 
-goOffline() {
-  this.userStatus.set('offline');
-}
+  goOffline() {
+    this.userStatus.set('offline');
+  }
 
-toggleStatus() {
-  this.userStatus.update(current => current === 'online' ? 'offline' : 'online');
-}
+  goAway() {
+    this.userStatus.set('away');
+  }
+
+  toggleStatus() {
+    const current = this.userStatus();
+    switch (current) {
+      case 'offline':
+        this.userStatus.set('online');
+        break;
+      case 'online':
+        this.userStatus.set('away');
+        break;
+      case 'away':
+        this.userStatus.set('offline');
+        break;
+    }
+  }
+
+  notificationsEnabled = computed(() => {
+    return this.userStatus() === 'online'
+  });
+
+  statusMessage = computed(() => {
+    const status = this.userStatus();
+    switch (status) {
+      case 'online':
+        return 'Available for meeting and messages';
+      case 'away':
+        return 'Temporarily away, will respond soon';
+      case 'offline':
+        return 'Not available, check back later';
+      default:
+        return 'Status unknown';
+    }
+  });
+
+  isWithinWorkingHours = computed(() => {
+    const now = new Date();
+    const hour = now.getHours();
+    const isWeekday = now.getDay() > 0 && now.getDay() < 6;
+    return isWeekday && hour >= 9 && hour < 17 && this.userStatus() !== 'offline';
+  });
 }
