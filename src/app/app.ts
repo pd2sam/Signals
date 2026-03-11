@@ -1,4 +1,4 @@
-import { Component, signal, computed, ChangeDetectionStrategy } from '@angular/core';
+import { Component, signal, linkedSignal, computed, ChangeDetectionStrategy } from '@angular/core';
 
 @Component({
   selector: 'app-root',
@@ -17,6 +17,13 @@ import { Component, signal, computed, ChangeDetectionStrategy } from '@angular/c
           } @else {
             Disabled
           }
+          <button (click)="toggleNotifications()" class="override-btn">
+            @if (notificationsEnabled()) {
+              Disable
+            } @else {
+              Enable
+            } 
+          </button>
         </div>
         <div class="message">
           <strong>Message:</strong>
@@ -72,7 +79,11 @@ export class App {
     }
   }
 
-  notificationsEnabled = computed(() => {
+  toggleNotifications() {
+    this.notificationsEnabled.set(!this.notificationsEnabled());
+  }
+
+  notificationsEnabled = linkedSignal(() => {
     return this.userStatus() === 'online'
   });
 
